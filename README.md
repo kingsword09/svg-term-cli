@@ -8,6 +8,8 @@
 
 # svg-term-cli
 
+> **Note**: This is a fork of [marionebl/svg-term-cli](https://github.com/marionebl/svg-term-cli) with additional improvements and modernizations.
+
 * 💄 Render asciicast to animated SVG
 * 🌐 Share asciicasts everywhere (sans JS)
 * 🤖 Style with common [color profiles](https://github.com/marionebl/term-schemes#supported-formats)
@@ -71,6 +73,19 @@ svg-term --cast=113643 --out examples/parrot.svg --window
     $ svg-term --cast 113643 --out examples/parrot.svg
 ```
 
+## Fork Improvements
+
+This fork includes several modernizations and improvements over the original:
+
+- **TypeScript Migration**: Full TypeScript rewrite with strict type checking
+- **Modern Node.js**: Updated to require Node.js 20+ with modern JavaScript features
+- **ESM Support**: Native ES modules with CommonJS compatibility
+- **Updated Dependencies**: All dependencies updated to latest versions
+- **Improved Build System**: Using zshy for optimized builds
+- **Enhanced Testing**: Vitest for faster, modern testing
+- **Better Linting**: oxlint for fast, accurate linting
+- **Development Experience**: Improved scripts and development workflow
+
 ## Rationale
 
 Replace GIF asciicast recordings where you can not use the [asciinema player](https://asciinema.org/), e.g. `README.md` files on GitHub and the npm registry.
@@ -95,7 +110,7 @@ The image at the top of this README is an example. See how sharp the text looks,
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/marionebl/svg-term-cli.git
+   git clone https://github.com/kingsword09/svg-term-cli.git
    cd svg-term-cli
    ```
 
