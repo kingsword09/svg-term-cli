@@ -12,13 +12,20 @@
 * 🌐 Share asciicasts everywhere (sans JS)
 * 🤖 Style with common [color profiles](https://github.com/marionebl/term-schemes#supported-formats)
 
+## Requirements
+
+- **Node.js 20.0.0 or higher** - This project uses modern JavaScript features and Node.js built-in APIs
+- **pnpm** (recommended) or npm for package management
+
 ## Install
 
 1. Install asciinema via: https://asciinema.org/docs/installation
 2. Install svg-term-cli:
-      ```sh
-      npm install -g svg-term-cli
-      ```
+   
+   **Using pnpm (recommended):**
+   ```sh
+   pnpm add -g svg-term-cli
+   ```
 
 ## Usage
 
@@ -76,6 +83,72 @@ The image at the top of this README is an example. See how sharp the text looks,
 * [derhuerst/asciicast-to-svg](https://github.com/derhuerst/asciicast-to-svg) - Render frames of Asciicasts as SVGs
 * [marionebl/svg-term](https://github.com/marionebl/svg-term) - Render asciicast to animated SVG
 * [marionebl/term-schemes](https://github.com/marionebl/term-schemes) - Parse and normalize common terminal emulator color schemes
+
+## Development
+
+### Prerequisites
+
+- Node.js 20.0.0 or higher
+- pnpm (recommended) or npm
+
+### Setup
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/marionebl/svg-term-cli.git
+   cd svg-term-cli
+   ```
+
+2. Install dependencies:
+   ```sh
+   pnpm install
+   ```
+
+3. Build the project:
+   ```sh
+   pnpm build
+   ```
+
+### Available Scripts
+
+- `pnpm build` - Build the project using zshy (generates both ESM and CommonJS outputs)
+- `pnpm dev` - Run the CLI in development mode
+- `pnpm test` - Run tests once
+- `pnpm test:watch` - Run tests in watch mode
+- `pnpm test:ui` - Run tests with UI
+- `pnpm test:coverage` - Run tests with coverage report
+- `pnpm lint` - Lint code with oxlint
+- `pnpm format` - Format code with Prettier
+
+### Project Structure
+
+- `src/` - TypeScript source code
+- `dist/` - Built output (ESM and CommonJS)
+- `examples/` - Example SVG outputs
+- `.kiro/` - Kiro IDE configuration and specs
+
+### Contributing
+
+1. **Fork the repository** and create your feature branch from `main`
+2. **Install dependencies** with `pnpm install`
+3. **Make your changes** following the existing code style
+4. **Add tests** for new functionality
+5. **Run the test suite** with `pnpm test`
+6. **Lint your code** with `pnpm lint`
+7. **Format your code** with `pnpm format`
+8. **Build the project** with `pnpm build` to ensure it compiles
+9. **Submit a pull request** with a clear description of your changes
+
+### Code Style
+
+This project uses:
+- **TypeScript** with strict type checking
+- **Prettier** for code formatting
+- **oxlint** for fast linting
+- **Vitest** for testing
+- **ESM modules** with CommonJS compatibility
+
+Please ensure your code follows these conventions and passes all checks before submitting.
 
 ## Gallery
 

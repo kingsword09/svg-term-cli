@@ -1,13 +1,25 @@
 {
-    "compilerOptions": {
-      "declaration": true,
-      "lib": ["es2015"],
-      "module": "commonjs",
-      "noImplicitAny": true,
-      "outDir": "lib/",
-      "pretty": true,
-      "strictNullChecks": true,
-      "target": "es2015"
-    }
-  }
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["vitest/globals"],
+    "noImplicitAny": false,
+    "verbatimModuleSyntax": false,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
   

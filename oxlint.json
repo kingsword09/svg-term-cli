@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "typescript/no-unused-vars": "error",
+    "typescript/no-explicit-any": "warn",
+    "typescript/prefer-const": "error",
+    "typescript/no-var-requires": "error"
+  },
+  "ignore": [
+    "dist/",
+    "node_modules/",
+    "*.js",
+    "!eslint.config.js"
+  ]
+}

@@ -1,13 +1,19 @@
 environment:
   matrix:
-    - nodejs_version: '6'
+    - nodejs_version: '20'
+    - nodejs_version: '22'
+cache:
+  - '%APPDATA%\pnpm-store'
 install:
   - ps: Install-Product node $env:nodejs_version
   - set CI=true
-  - yarn
+  - npm install -g pnpm
+  - pnpm install --frozen-lockfile
 matrix:
   fast_finish: true
-build: off
+build: false
 version: '{build}'
 test_script:
-  - yarn test
+  - pnpm lint
+  - pnpm test
+  - pnpm build

@@ -1,21 +1,20 @@
 #!/usr/bin/env node
-import chalk from "chalk";
-import * as execa from "execa";
-import { GuessedTerminal, guessTerminal } from "guess-terminal";
-import * as macosAppConfig from "macos-app-config";
-import * as os from "os";
-import * as path from "path";
-import * as tempy from "tempy";
-import * as parsers from "term-schemes";
+import chalk from 'chalk';
+import { execa } from 'execa';
+import { GuessedTerminal, guessTerminal } from 'guess-terminal';
+import * as macosAppConfig from 'macos-app-config';
+import os from 'node:os';
+import path from 'node:path';
+import { temporaryFile } from 'tempy';
+import * as parsers from 'term-schemes';
 
-const commandExists = require("command-exists");
-const meow = require("meow");
-const plist = require("plist");
-const fetch = require("node-fetch");
-const getStdin = require("get-stdin");
-const { render } = require("svg-term");
-const sander = require("@marionebl/sander");
-const SVGO = require("svgo");
+import commandExists from 'command-exists';
+import { Command } from 'commander';
+import plist from 'plist';
+import getStdin from 'get-stdin';
+import { render } from 'svg-term';
+import fs from 'node:fs/promises';
+import { optimize } from 'svgo';
 
 interface Guesses {
   [key: string]: string | null;
@@ -67,40 +66,40 @@ withCli(
     $ svg-term --cast 113643 --out examples/parrot.svg
 `,
   {
-    boolean: ["cursor", "help", "optimize", "version", "window"],
+    boolean: ['cursor', 'help', 'optimize', 'version', 'window'],
     string: [
-      "at",
-      "cast",
-      "command",
-      "from",
-      "height",
-      "in",
-      "out",
-      "padding",
-      "padding-x",
-      "padding-y",
-      "profile",
-      "term",
-      "to",
-      "width"
+      'at',
+      'cast',
+      'command',
+      'from',
+      'height',
+      'in',
+      'out',
+      'padding',
+      'padding-x',
+      'padding-y',
+      'profile',
+      'term',
+      'to',
+      'width',
     ],
     default: {
       cursor: true,
       optimize: true,
-      window: false
-    }
+      window: false,
+    },
   }
 );
 
 async function main(cli: SvgTermCli) {
   const error = cliError(cli);
 
-  if (cli.flags.hasOwnProperty("command") && !await command("asciinema")) {
+  if (cli.flags.hasOwnProperty('command') && !(await command('asciinema'))) {
     throw error(
       [
         `svg-term: asciinema must be installed when --command is specified.`,
-        ` See instructions at: https://asciinema.org/docs/installation`
-      ].join("\n")
+        ` See instructions at: https://asciinema.org/docs/installation`,
+      ].join('\n')
     );
   }
 
@@ -112,7 +111,7 @@ async function main(cli: SvgTermCli) {
     );
   }
 
-  const malformed = ensure(["height", "width"], cli.flags, (name, val) => {
+  const malformed = ensure(['height', 'width'], cli.flags, (name, val) => {
     if (!cli.flags.hasOwnProperty(name)) {
       return null;
     }
@@ -126,20 +125,20 @@ async function main(cli: SvgTermCli) {
   });
 
   if (malformed.length > 0) {
-    throw error(`svg-term: ${malformed.map(m => m.message).join("\n")}`);
+    throw error(`svg-term: ${malformed.map((m) => m.message).join('\n')}`);
   }
 
   const missingValue = ensure(
-    ["cast", "out", "profile"],
+    ['cast', 'out', 'profile'],
     cli.flags,
     (name, val) => {
       if (!cli.flags.hasOwnProperty(name)) {
         return null;
       }
-      if (name === "cast" && typeof val === "number") {
+      if (name === 'cast' && typeof val === 'number') {
         return null;
       }
-      if (typeof val === "string") {
+      if (typeof val === 'string') {
         return null;
       }
 
@@ -148,21 +147,21 @@ async function main(cli: SvgTermCli) {
   );
 
   if (missingValue.length > 0) {
-    throw error(`svg-term: ${missingValue.map(m => m.message).join("\n")}`);
+    throw error(`svg-term: ${missingValue.map((m) => m.message).join('\n')}`);
   }
 
-  const shadowed = ensure(["at", "from", "to"], cli.flags, (name, val) => {
+  const shadowed = ensure(['at', 'from', 'to'], cli.flags, (name, val) => {
     if (!cli.flags.hasOwnProperty(name)) {
       return null;
     }
 
-    const v = typeof val === "number" ? val : parseInt(val, 10);
+    const v = typeof val === 'number' ? val : parseInt(val, 10);
 
     if (isNaN(v)) {
       return new TypeError(`${name} expected to be number, received "${val}"`);
     }
 
-    if (name !== "at" && !isNaN(parseInt(cli.flags.at, 10))) {
+    if (name !== 'at' && !isNaN(parseInt(cli.flags.at, 10))) {
       return new TypeError(`--at flag disallows --${name}`);
     }
 
@@ -170,34 +169,34 @@ async function main(cli: SvgTermCli) {
   });
 
   if (shadowed.length > 0) {
-    throw error(`svg-term: ${shadowed.map(m => m.message).join("\n")}`);
+    throw error(`svg-term: ${shadowed.map((m) => m.message).join('\n')}`);
   }
 
-  const term = cli.flags.hasOwnProperty("term")
+  const term = cli.flags.hasOwnProperty('term')
     ? cli.flags.term
     : guessTerminal();
-  const profile = cli.flags.hasOwnProperty("profile")
+  const profile = cli.flags.hasOwnProperty('profile')
     ? cli.flags.profile
     : guessProfile(term);
 
   const guess: Guesses = {
     term,
-    profile
+    profile,
   };
 
-  if (cli.flags.hasOwnProperty("term") || cli.flags.hasOwnProperty("profile")) {
-    const unsatisfied = ["term", "profile"].filter(n => !Boolean(guess[n]));
+  if (cli.flags.hasOwnProperty('term') || cli.flags.hasOwnProperty('profile')) {
+    const unsatisfied = ['term', 'profile'].filter((n) => !guess[n]);
 
-    if (unsatisfied.length > 0 && term !== "hyper") {
+    if (unsatisfied.length > 0 && term !== 'hyper') {
       throw error(
         `svg-term: --term and --profile must be used together, ${unsatisfied.join(
-          ", "
+          ', '
         )} missing`
       );
     }
   }
 
-  const unknown = ensure(["term"], cli.flags, (name, val) => {
+  const unknown = ensure(['term'], cli.flags, (name, val) => {
     if (!cli.flags.hasOwnProperty(name)) {
       return null;
     }
@@ -208,13 +207,13 @@ async function main(cli: SvgTermCli) {
 
     return new TypeError(
       `${name} expected to be one of ${Object.keys(parsers.TermSchemes).join(
-        ", "
+        ', '
       )}, received "${val}"`
     );
   });
 
   if (unknown.length > 0) {
-    throw error(`svg-term: ${unknown.map(m => m.message).join("\n")}`);
+    throw error(`svg-term: ${unknown.map((m) => m.message).join('\n')}`);
   }
 
   const [err, theme] = await getTheme(guess);
@@ -227,25 +226,32 @@ async function main(cli: SvgTermCli) {
     at: toNumber(cli.flags.at),
     cursor: toBoolean(cli.flags.cursor, true),
     from: toNumber(cli.flags.from),
-    paddingX: toNumber(cli.flags.paddingX || cli.flags.padding),
-    paddingY: toNumber(cli.flags.paddingY || cli.flags.padding),
+    paddingX: toNumber(cli.flags.paddingX || cli.flags.padding) ?? 0,
+    paddingY: toNumber(cli.flags.paddingY || cli.flags.padding) ?? 0,
     to: toNumber(cli.flags.to),
     height: toNumber(cli.flags.height),
-    theme,
+    theme: theme as any,
     width: toNumber(cli.flags.width),
-    window: toBoolean(cli.flags.window, false)
-  });
-
-  const svgo = new SVGO({
-    plugins: [{ collapseGroups: false }]
+    window: toBoolean(cli.flags.window, false),
   });
 
   const optimized = toBoolean(cli.flags.optimize, true)
-    ? await svgo.optimize(svg)
+    ? optimize(svg, {
+        plugins: [
+          {
+            name: 'preset-default',
+            params: {
+              overrides: {
+                collapseGroups: false,
+              },
+            },
+          },
+        ],
+      })
     : { data: svg };
 
-  if (typeof cli.flags.out === "string") {
-    sander.writeFile(cli.flags.out, Buffer.from(optimized.data));
+  if (typeof cli.flags.out === 'string') {
+    await fs.writeFile(cli.flags.out, optimized.data);
   } else {
     process.stdout.write(optimized.data);
   }
@@ -254,24 +260,24 @@ async function main(cli: SvgTermCli) {
 async function command(name: string): Promise<boolean> {
   try {
     return (await commandExists(name)) === name;
-  } catch (err) { // tslint:disable-line no-unused
+  } catch {
     return false;
   }
 }
 
 function ensure(
   names: string[],
-  flags: SvgTermCli["flags"],
+  flags: SvgTermCli['flags'],
   predicate: (name: string, val: any) => Error | null
 ): Error[] {
   return names
-    .map(name => predicate(name, flags[name]))
-    .filter(e => e instanceof Error)
-    .map(e => e as Error);
+    .map((name) => predicate(name, flags[name]))
+    .filter((e) => e instanceof Error)
+    .map((e) => e as Error);
 }
 
 function cliError(cli: SvgTermCli): (message: string) => SvgTermError {
-  return message => {
+  return (message) => {
     const err: any = new Error(message);
     err.help = () => cli.help;
 
@@ -297,10 +303,10 @@ function getPresets(term: GuessedTerminal): any {
 
   switch (term) {
     case GuessedTerminal.terminal: {
-      return config["Window Settings"];
+      return config['Window Settings'];
     }
     case GuessedTerminal.iterm2: {
-      return config["Custom Color Presets"];
+      return config['Custom Color Presets'];
     }
     default:
       return null;
@@ -308,7 +314,7 @@ function getPresets(term: GuessedTerminal): any {
 }
 
 function guessProfile(term: GuessedTerminal): string | null {
-  if (os.platform() !== "darwin") {
+  if (os.platform() !== 'darwin') {
     return null;
   }
 
@@ -320,7 +326,7 @@ function guessProfile(term: GuessedTerminal): string | null {
 
   switch (term) {
     case GuessedTerminal.terminal: {
-      return config["Default Window Settings"];
+      return config['Default Window Settings'];
     }
     case GuessedTerminal.iterm2: {
       return null;
@@ -336,7 +342,7 @@ async function getInput(cli: SvgTermCli) {
   }
 
   if (cli.flags.in) {
-    return String(await sander.readFile(cli.flags.in));
+    return await fs.readFile(cli.flags.in, 'utf-8');
   }
 
   if (cli.flags.cast) {
@@ -344,7 +350,7 @@ async function getInput(cli: SvgTermCli) {
       `https://asciinema.org/a/${cli.flags.cast}.cast?dl=true`
     );
 
-    return response.text();
+    return await response.text();
   }
 
   return getStdin();
@@ -379,48 +385,56 @@ function getParser(term: string) {
 
 type Result<T> = [Error, null] | [null, T];
 
-async function getTheme(guess: Guesses): Promise<Result<parsers.TermScheme | null>> {
+async function getTheme(
+  guess: Guesses
+): Promise<Result<parsers.TermScheme | null>> {
   if (guess.term === null && guess.profile === null) {
     return [null, null];
   }
 
-  const p = guess.profile || "";
-  const isFileProfile = ["~", "/", "."].indexOf(p.charAt(0)) > -1;
+  const p = guess.profile || '';
+  const isFileProfile = ['~', '/', '.'].indexOf(p.charAt(0)) > -1;
 
   return isFileProfile
     ? parseTheme(guess.term as string, guess.profile as string)
     : extractTheme(guess.term as string, guess.profile as string);
 }
 
-async function parseTheme(term: string, input: string): Promise<Result<parsers.TermScheme>> {
+async function parseTheme(
+  term: string,
+  input: string
+): Promise<Result<parsers.TermScheme>> {
   try {
     const parser = getParser(term);
-    const content = String(await sander.readFile(input));
+    const content = await fs.readFile(input, 'utf-8');
 
     return [null, parser(content)];
   } catch (err) {
-    return [err, null];
+    return [err as Error, null];
   }
 }
 
-async function extractTheme(term: string, name: string): Promise<Result<parsers.TermScheme | null>> {
+async function extractTheme(
+  term: string,
+  name: string
+): Promise<Result<parsers.TermScheme | null>> {
   if (!GuessedTerminal.hasOwnProperty(term)) {
     return [null, null];
   }
 
-  if (os.platform() !== "darwin") {
+  if (os.platform() !== 'darwin') {
     return [null, null];
   }
 
   if (term === GuessedTerminal.hyper) {
     try {
-      const filename = path.resolve(os.homedir(), ".hyper.js");
-      const content = String(await sander.readFile(filename));
-      const result = parsers.hyper(content, {filename});
+      const filename = path.resolve(os.homedir(), '.hyper.js');
+      const content = await fs.readFile(filename, 'utf-8');
+      const result = parsers.hyper(content, { filename });
 
       return [null, result];
     } catch (err) {
-      return [err, null]; 
+      return [err as Error, null];
     }
   }
 
@@ -434,7 +448,7 @@ async function extractTheme(term: string, name: string): Promise<Result<parsers.
     const err = new Error(
       `profile "${name}" not found for terminal "${term}". Available: ${Object.keys(
         presets
-      ).join(", ")}`
+      ).join(', ')}`
     );
 
     return [err, null];
@@ -453,7 +467,7 @@ async function extractTheme(term: string, name: string): Promise<Result<parsers.
       try {
         return [null, parser(plist.build(theme))];
       } catch (err) {
-        return [err, null];
+        return [err as Error, null];
       }
     default:
       return [null, null];
@@ -464,32 +478,32 @@ async function record(
   cmd: string,
   options: RecordOptions = {}
 ): Promise<string> {
-  const tmp = tempy.file({ extension: ".json" });
+  const tmp = temporaryFile({ extension: '.json' });
 
-  const result = await execa("asciinema", [
-    "rec",
-    "-c",
+  const result = await execa('asciinema', [
+    'rec',
+    '-c',
     cmd,
-    ...(options.title ? ["-t", options.title] : []),
-    tmp
+    ...(options.title ? ['-t', options.title] : []),
+    tmp,
   ]);
 
-  if (result.code > 0) {
+  if ((result.exitCode ?? 0) > 0) {
     throw new Error(
       `recording "${cmd}" failed\n${result.stdout}\n${result.stderr}`
     );
   }
 
-  return String(await sander.readFile(tmp));
+  return await fs.readFile(tmp, 'utf-8');
 }
 
-function toNumber(input: string | null): number | null {
+function toNumber(input: string | null): number | undefined {
   if (!input) {
-    return null;
+    return undefined;
   }
   const candidate = parseInt(input, 10);
   if (isNaN(candidate)) {
-    return null;
+    return undefined;
   }
 
   return candidate;
@@ -499,10 +513,10 @@ function toBoolean(input: any, fb: boolean): boolean {
   if (input === undefined) {
     return fb;
   }
-  if (input === "false") {
+  if (input === 'false') {
     return false;
   }
-  if (input === "true") {
+  if (input === 'true') {
     return true;
   }
 
@@ -511,35 +525,52 @@ function toBoolean(input: any, fb: boolean): boolean {
 
 function withCli(
   fn: (cli: SvgTermCli) => Promise<void>,
-  help: string = "",
-  options = {}
+  help: string = '',
+  _options: any = {}
 ): void {
-  const unknown: string[] = [];
-  const cli = meow(help, {
-    ...options,
-    unknown: (arg: string) => {
-      unknown.push(arg);
+  const program = new Command();
+  
+  program
+    .name('svg-term')
+    .description('Share terminal sessions as razor-sharp animated SVG everywhere')
+    .version('2.1.1')
+    .option('--at <number>', 'timestamp of frame to render in ms')
+    .option('--cast <string>', 'asciinema cast id to download, required if no stdin provided')
+    .option('--command <string>', 'command to record')
+    .option('--from <number>', 'lower range of timeline to render in ms')
+    .option('--height <number>', 'height in lines')
+    .option('--in <string>', 'json file to use as input')
+    .option('--no-cursor', 'disable cursor rendering')
+    .option('--no-optimize', 'disable svgo optimization')
+    .option('--out <string>', 'output file, emits to stdout if omitted')
+    .option('--padding <number>', 'distance between text and image bounds')
+    .option('--padding-x <number>', 'distance between text and image bounds on x axis')
+    .option('--padding-y <number>', 'distance between text and image bounds on y axis')
+    .option('--profile <string>', 'terminal profile file to use, requires --term')
+    .option('--term <string>', 'terminal profile format [iterm2, xrdb, xresources, terminator, konsole, terminal, remmina, termite, tilda, xcfe], requires --profile')
+    .option('--to <number>', 'upper range of timeline to render in ms')
+    .option('--width <number>', 'width in columns')
+    .option('--window', 'render with window decorations');
 
-      return false;
-    }
-  });
+  program.parse();
+  
+  const opts = program.opts();
+  const args = program.args;
 
-  if (unknown.length > 0) {
-    const msg = chalk.red(`svg-term: remove unknown flags ${unknown.join(", ")}`);
+  // Convert commander result to match meow interface
+  const cli: SvgTermCli = {
+    flags: opts,
+    help: help,
+    input: args
+  };
 
-    console.error("\n", msg);
-    console.error(cli.help);
-    console.error("\n", msg);
-    process.exit(1);
-  }
-
-  fn(cli).catch(err => {
+  fn(cli).catch((err) => {
     const msg = chalk.red(err.message);
 
-    if (typeof err.help === "function") {
-      console.error("\n", msg);
+    if (typeof err.help === 'function') {
+      console.error('\n', msg);
       console.error(err.help());
-      console.error("\n", msg);
+      console.error('\n', msg);
       process.exit(1);
     }
 

@@ -1,5 +1,17 @@
 language: node_js
 node_js:
-  - '8'
-  - '6'
-cache: yarn
+  - '20'
+  - '22'
+  - 'lts/*'
+cache:
+  directories:
+    - ~/.pnpm-store
+before_install:
+  - curl -fsSL https://get.pnpm.io/install.sh | sh -
+  - export PATH="$HOME/.local/share/pnpm:$PATH"
+install:
+  - pnpm install --frozen-lockfile
+script:
+  - pnpm lint
+  - pnpm test
+  - pnpm build
