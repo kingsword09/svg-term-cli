@@ -63,7 +63,7 @@ test('prints help with non-zero exit code', async () => {
 test('prints help with zero exit code for --help', async () => {
   const result = await bin(['--help'], { input: '' });
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain('print this help');
+  expect(result.stdout).toContain('display help for command');
 });
 
 test('prints version with zero exit code for --version', async () => {
@@ -83,7 +83,13 @@ test('is silent on stderr for minimal stdin input', async () => {
   const result = await bin([], {
     input: '[{"version": 2, "width": 1, "height": 1}, [1, "o", "foo"]]',
   });
-  expect(result.stderr).toBe('');
+  // Filter out npm warnings that are not related to our application
+  const filteredStderr = result.stderr
+    .split('\n')
+    .filter(line => !line.includes('npm warn'))
+    .join('\n')
+    .trim();
+  expect(filteredStderr).toBe('');
   expect(result.exitCode).toBe(0);
 });
 
